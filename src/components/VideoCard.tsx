@@ -267,6 +267,18 @@ export default function VideoCard({
     return configs[from] || configs.search;
   }, [from, isAggregate, actualDoubanId, rate]);
 
+  // Douban posters often reject direct hotlinking. Use the existing same-origin
+  // image proxy so the request carries the correct Pages deployment cookie.
+  // Keep other sources (including watch history) on their original image URLs.
+  const isDoubanPoster =
+    from === 'douban' &&
+    /^https?:\\/\\/(?:[^/]+\\.)?(?:doubanio\\.com|douban\\.com)\\//i.test(
+      actualPoster
+    );
+  const posterSrc = isDoubanPoster
+    ? `/api/image-proxy?url=${encodeURIComponent(actualPoster)}`
+    : processImageUrl(actualPoster);
+
   return (
     <div
       className='group relative w-full rounded-lg bg-transparent cursor-pointer transition-all duration-300 ease-in-out hover:scale-[1.05] hover:z-[500]'
@@ -278,7 +290,7 @@ export default function VideoCard({
         {!isLoading && <ImagePlaceholder aspectRatio='aspect-[2/3]' />}
         {/* 图片 */}
         <Image
-          src={processImageUrl(actualPoster)}
+          src={posterSrc}
           alt={actualTitle}
           fill
           className='object-cover'
