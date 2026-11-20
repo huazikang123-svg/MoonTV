@@ -272,7 +272,7 @@ export default function VideoCard({
   // Keep other sources (including watch history) on their original image URLs.
   const isDoubanPoster =
     from === 'douban' &&
-    /^https?:\\/\\/(?:[^/]+\\.)?(?:doubanio\\.com|douban\\.com)\\//i.test(
+    /^https?:\/\/(?:[^/]+\.)?(?:doubanio\.com|douban\.com)\//i.test(
       actualPoster
     );
   const posterSrc = isDoubanPoster
