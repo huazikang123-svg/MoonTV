@@ -7,7 +7,7 @@ export interface RecommendedItem extends DoubanItem {
 }
 
 function normalizeTitle(text: string): string {
-  return (text || '').toLowerCase().replace(/[\\s·•:：,.，。!！?？()（）_\\-]/g, '');
+  return (text || '').toLowerCase().replace(/[ \t\r\n·•:：,.，。!！?？()（）_-]/g, '');
 }
 
 function ngrams(text: string): string[] {
@@ -89,5 +89,7 @@ export function buildRecommendations(
     if (seen.has(title)) return false;
     seen.add(title);
     return true;
-  }).slice(0, 12).map(({ score: _score, ...item }) => item);
+  }).slice(0, 12).map((item) => ({ id: item.id, title: item.title,
+    poster: item.poster, rate: item.rate, year: item.year,
+    kind: item.kind, reason: item.reason }));
 }
