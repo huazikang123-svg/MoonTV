@@ -16,6 +16,7 @@ import { SearchResult } from '@/lib/types';
 import { yellowWords } from '@/lib/yellow';
 
 import PageLayout from '@/components/PageLayout';
+import PinyinKeyboard from '@/components/PinyinKeyboard';
 import VideoCard from '@/components/VideoCard';
 
 function SearchPageClient() {
@@ -27,6 +28,7 @@ function SearchPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
+  const [imeOpen, setImeOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -45,6 +47,26 @@ function SearchPageClient() {
   const [viewMode, setViewMode] = useState<'agg' | 'all'>(() => {
     return getDefaultAggregate() ? 'agg' : 'all';
   });
+
+  useEffect(() => {
+    try {
+      const setting = localStorage.getItem('moontv-pinyin-ime');
+      if (setting !== null) {
+        setImeOpen(setting === 'true');
+      } else if (/webos|web0s|lg browser|smarttv/i.test(navigator.userAgent)) {
+        setImeOpen(true);
+      }
+    } catch (_error) {
+      // LocalStorage is optional for TV browsers.
+    }
+  }, []);
+
+  const togglePinyinIme = () => {
+    setImeOpen((open) => {
+      try { localStorage.setItem('moontv-pinyin-ime', String(!open)); } catch (_error) { /* ignore */ }
+      return !open;
+    });
+  };
 
   // 聚合后的结果（按标题和年份分组）
   const aggregatedResults = useMemo(() => {
@@ -94,7 +116,8 @@ function SearchPageClient() {
 
   useEffect(() => {
     // 无搜索参数时聚焦搜索框
-    !searchParams.get('q') && document.getElementById('searchInput')?.focus();
+    const isTV = /webos|web0s|lg browser|smarttv/i.test(navigator.userAgent);
+    !searchParams.get('q') && !isTV && document.getElementById('searchInput')?.focus();
 
     // 初始加载搜索历史
     getSearchHistory().then(setSearchHistory);
@@ -211,9 +234,8 @@ function SearchPageClient() {
     }
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = searchQuery.trim().replace(/\s+/g, ' ');
+  const submitSearch = (query: string) => {
+    const trimmed = query.trim().replace(/\s+/g, ' ');
     if (!trimmed) return;
 
     // 回显搜索框
@@ -227,6 +249,11 @@ function SearchPageClient() {
 
     // 保存到搜索历史 (事件监听会自动更新界面)
     addSearchHistory(trimmed);
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitSearch(searchQuery);
   };
 
   // 返回顶部功能
@@ -248,19 +275,43 @@ function SearchPageClient() {
       <div className='px-4 sm:px-10 py-4 sm:py-8 overflow-visible mb-10'>
         {/* 搜索框 */}
         <div className='mb-8'>
+          <div className='max-w-2xl mx-auto flex justify-end mb-2'>
+            <button
+              type='button'
+              onClick={togglePinyinIme}
+              className='rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 focus:ring-4 focus:ring-green-400'
+            >
+              {imeOpen ? '关闭拼音键盘' : '中文拼音输入'}
+            </button>
+          </div>
           <form onSubmit={handleSearch} className='max-w-2xl mx-auto'>
             <div className='relative'>
               <Search className='absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 dark:text-gray-500' />
-              <input
-                id='searchInput'
-                type='text'
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder='搜索电影、电视剧...'
-                className='w-full h-12 rounded-lg bg-gray-50/80 py-3 pl-10 pr-4 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:bg-white border border-gray-200/50 shadow-sm dark:bg-gray-800 dark:text-gray-300 dark:placeholder-gray-500 dark:focus:bg-gray-700 dark:border-gray-700'
-              />
+              {imeOpen ? (
+                <div className='w-full min-h-12 rounded-lg bg-gray-50 py-3 pl-10 pr-4 text-base text-gray-800 border border-green-400 dark:bg-gray-800 dark:text-gray-200'
+                  aria-label='已输入的搜索文字'>
+                  {searchQuery || <span className='text-gray-400'>拼音选择的汉字会显示在这里</span>}
+                </div>
+              ) : (
+                <input
+                  id='searchInput'
+                  type='text'
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder='搜索电影、电视剧...'
+                  className='w-full h-12 rounded-lg bg-gray-50/80 py-3 pl-10 pr-4 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:bg-white border border-gray-200/50 shadow-sm dark:bg-gray-800 dark:text-gray-300 dark:placeholder-gray-500 dark:focus:bg-gray-700 dark:border-gray-700'
+                />
+              )}
             </div>
           </form>
+          {imeOpen && (
+            <PinyinKeyboard
+              value={searchQuery}
+              onTextChange={setSearchQuery}
+              onSearch={submitSearch}
+              onClose={togglePinyinIme}
+            />
+          )}
         </div>
 
         {/* 搜索结果或搜索历史 */}
