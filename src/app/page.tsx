@@ -19,6 +19,7 @@ import { DoubanItem } from '@/lib/types';
 import CapsuleSwitch from '@/components/CapsuleSwitch';
 import ContinueWatching from '@/components/ContinueWatching';
 import PageLayout from '@/components/PageLayout';
+import PersonalizedRecommendations from '@/components/PersonalizedRecommendations';
 import ScrollableRow from '@/components/ScrollableRow';
 import { useSite } from '@/components/SiteProvider';
 import VideoCard from '@/components/VideoCard';
@@ -212,6 +213,9 @@ function HomeClient() {
             <>
               {/* 继续观看 */}
               <ContinueWatching />
+
+              {/* 基于本机观看和收藏的轻量个性化推荐 */}
+              <PersonalizedRecommendations movies={hotMovies} shows={hotTvShows} />
 
               {/* 热门电影 */}
               <section className='mb-8'>

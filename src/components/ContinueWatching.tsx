@@ -145,6 +145,12 @@ export default function ContinueWatching({ className }: ContinueWatchingProps) {
                     }
                     type={record.total_episodes > 1 ? 'tv' : ''}
                   />
+                  {record.play_time > 0 && (
+                    <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
+                      {record.total_episodes > 1 ? `第${record.index}集 · ` : ''}
+                      已看到 {Math.floor(record.play_time / 60)} 分 {Math.floor(record.play_time % 60)} 秒
+                    </p>
+                  )}
                 </div>
               );
             })}
