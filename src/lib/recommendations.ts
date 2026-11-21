@@ -7,7 +7,7 @@ export interface RecommendedItem extends DoubanItem {
 }
 
 function normalizeTitle(text: string): string {
-  return (text || '').toLowerCase().replace(/[ \t\r\n·•:：,.，。!！?？()（）_-]/g, '');
+  return (text || '').toLowerCase().replace(/[\s·•:：,.，。!！?？()（）_-]/g, '');
 }
 
 function ngrams(text: string): string[] {
