@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any, @next/next/no-img-element */
 
 import { CheckCircle, Heart, Link, PlayCircleIcon } from 'lucide-react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -58,6 +57,8 @@ export default function VideoCard({
   const router = useRouter();
   const [favorited, setFavorited] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [posterFallback, setPosterFallback] = useState(false);
+  const [posterFailed, setPosterFailed] = useState(false);
 
   const isAggregate = from === 'search' && !!items?.length;
 
@@ -270,14 +271,43 @@ export default function VideoCard({
   // Douban posters often reject direct hotlinking. Use the existing same-origin
   // image proxy so the request carries the correct Pages deployment cookie.
   // Keep other sources (including watch history) on their original image URLs.
+  // Legacy webOS browsers may not support native image lazy-loading or
+  // CSS aspect-ratio. Keep poster URLs simple and retry a failed direct request
+  // through the site's existing same-origin proxy, once.
   const isDoubanPoster =
     from === 'douban' &&
     /^https?:\/\/(?:[^/]+\.)?(?:doubanio\.com|douban\.com)\//i.test(
       actualPoster
     );
-  const posterSrc = isDoubanPoster
+
+  const mainPosterSrc = isDoubanPoster
     ? `/api/image-proxy?url=${encodeURIComponent(actualPoster)}`
     : processImageUrl(actualPoster);
+  const fallbackPosterSrc = isDoubanPoster
+    ? actualPoster
+    : /^https?:\/\//i.test(actualPoster)
+      ? `/api/image-proxy?url=${encodeURIComponent(actualPoster)}`
+      : '';
+  const posterSrc = posterFallback ? fallbackPosterSrc : mainPosterSrc;
+
+  useEffect(() => {
+    setIsLoading(false);
+    setPosterFallback(false);
+    setPosterFailed(false);
+  }, [actualPoster, from]);
+
+  const handlePosterError = () => {
+    setIsLoading(false);
+    if (
+      !posterFallback &&
+      fallbackPosterSrc &&
+      fallbackPosterSrc !== mainPosterSrc
+    ) {
+      setPosterFallback(true);
+    } else {
+      setPosterFailed(true);
+    }
+  };
 
   return (
     <div
@@ -285,18 +315,35 @@ export default function VideoCard({
       onClick={handleClick}
     >
       {/* 海报容器 */}
-      <div className='relative aspect-[2/3] overflow-hidden rounded-lg'>
+      <div className='relative overflow-hidden rounded-lg'
+        style={{ paddingTop: '150%' }}>
         {/* 骨架屏 */}
-        {!isLoading && <ImagePlaceholder aspectRatio='aspect-[2/3]' />}
-        {/* 图片 */}
-        <Image
-          src={posterSrc}
-          alt={actualTitle}
-          fill
-          className='object-cover'
-          referrerPolicy='no-referrer'
-          onLoadingComplete={() => setIsLoading(true)}
-        />
+        {!isLoading && (
+          <div className='absolute inset-0'>
+            <ImagePlaceholder aspectRatio='h-full' />
+          </div>
+        )}
+        {/* Native eager image avoids older webOS lazy-loading issues. */}
+        {!posterFailed && posterSrc && (
+          <img
+            key={posterSrc}
+            src={posterSrc}
+            alt={actualTitle}
+            loading='eager'
+            decoding='async'
+            referrerPolicy='no-referrer'
+            onLoad={() => setIsLoading(true)}
+            onError={handlePosterError}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+          />
+        )}
 
         {/* 悬浮遮罩 */}
         <div className='absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 transition-opacity duration-300 ease-in-out group-hover:opacity-100' />
