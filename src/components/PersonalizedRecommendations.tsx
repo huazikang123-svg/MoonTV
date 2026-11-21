@@ -2,12 +2,12 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
+import type { Favorite, PlayRecord } from '@/lib/db.client';
 import {
   getAllFavorites,
   getAllPlayRecords,
   subscribeToDataUpdates,
 } from '@/lib/db.client';
-import type { Favorite, PlayRecord } from '@/lib/db.client';
 import { buildRecommendations } from '@/lib/recommendations';
 import type { DoubanItem } from '@/lib/types';
 
@@ -66,7 +66,7 @@ export default function PersonalizedRecommendations({ movies, shows }: Props) {
 
   const dismiss = (key: string) => {
     setHidden((existing) => {
-      const next = [...new Set([...existing, key])].slice(-200);
+      const next = Array.from(new Set([...existing, key])).slice(-200);
       try { localStorage.setItem(HIDDEN_KEY, JSON.stringify(next)); } catch { /* ignore */ }
       return next;
     });
